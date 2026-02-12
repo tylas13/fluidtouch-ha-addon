@@ -17,13 +17,29 @@ function initializeApp() {
 }
 
 function connectToBackend() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    // Determine the correct WebSocket URL
+    // When accessed via ingress, use relative path
+    // When accessed directly, use the full URL with port
+    let wsUrl;
     
+    if (window.location.pathname.includes('/api/hassio_ingress/')) {
+        // Running through Home Assistant ingress
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const baseUrl = window.location.pathname.split('/api/hassio_ingress/')[0];
+        const ingressPath = window.location.pathname.match(/\/api\/hassio_ingress\/[^/]+/)[0];
+        wsUrl = `${protocol}//${window.location.host}${ingressPath}/ws`;
+    } else {
+        // Direct access (for testing)
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        wsUrl = `${protocol}//${window.location.host}/ws`;
+    }
+    
+    console.log('Connecting to WebSocket:', wsUrl);
     ws = new WebSocket(wsUrl);
     
     ws.onopen = () => {
         console.log('Connected to backend');
+        updateConnectionStatus(true);
     };
     
     ws.onmessage = (event) => {
