@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FluidTouch Web</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>FluidTouch Web Controller</h1>
+            <div class="status-bar">
+                <span id="connection-status" class="status-badge disconnected">Disconnected</span>
+                <button id="settings-btn" class="icon-btn">⚙️</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Machine Selection -->
+            <div id="machine-select-view" class="view active">
+                <div class="card">
+                    <h2>Select Machine</h2>
+                    <div id="machines-list"></div>
+                    <button id="add-machine-btn" class="btn btn-primary">+ Add Machine</button>
+                </div>
+            </div>
+
+            <!-- Main Control View -->
+            <div id="control-view" class="view">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="status">Status</button>
+                    <button class="tab-btn" data-tab="jog">Jog</button>
+                    <button class="tab-btn" data-tab="files">Files</button>
+                    <button class="tab-btn" data-tab="macros">Macros</button>
+                    <button class="tab-btn" data-tab="probe">Probe</button>
+                    <button class="tab-btn" data-tab="console">Console</button>
+                </div>
+
+                <!-- Status Tab -->
+                <div id="status-tab" class="tab-content active">
+                    <div class="card">
+                        <h3>Machine Status</h3>
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <label>State:</label>
+                                <span id="machine-state">Unknown</span>
+                            </div>
+                            <div class="status-item">
+                                <label>Feed Rate:</label>
+                                <span id="feed-rate">0</span>
+                            </div>
+                            <div class="status-item">
+                                <label>Spindle:</label>
+                                <span id="spindle-speed">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Position</h3>
+                        <div class="position-grid">
+                            <div class="axis-position">
+                                <label>X:</label>
+                                <span id="pos-x">0.000</span>
+                                <button class="btn-small" onclick="zeroAxis('X')">Zero</button>
+                            </div>
+                            <div class="axis-position">
+                                <label>Y:</label>
+                                <span id="pos-y">0.000</span>
+                                <button class="btn-small" onclick="zeroAxis('Y')">Zero</button>
+                            </div>
+                            <div class="axis-position">
+                                <label>Z:</label>
+                                <span id="pos-z">0.000</span>
+                                <button class="btn-small" onclick="zeroAxis('Z')">Zero</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Quick Actions</h3>
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" onclick="sendCommand('$H')">Home All</button>
+                            <button class="btn" onclick="sendCommand('!')">Feed Hold</button>
+                            <button class="btn" onclick="sendCommand('~')">Resume</button>
+                            <button class="btn btn-danger" onclick="sendCommand('\\x18')">Reset</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Jog Tab -->
+                <div id="jog-tab" class="tab-content">
+                    <div class="card">
+                        <h3>Jog Controls</h3>
+                        <div class="jog-container">
+                            <div class="jog-step-select">
+                                <label>Step Size:</label>
+                                <select id="jog-step">
+                                    <option value="0.1">0.1mm</option>
+                                    <option value="1" selected>1mm</option>
+                                    <option value="10">10mm</option>
+                                    <option value="100">100mm</option>
+                                </select>
+                                <label>Feed Rate:</label>
+                                <input type="number" id="jog-feed" value="1000" min="1" max="10000">
+                            </div>
+
+                            <!-- XY Jog Pad -->
+                            <div class="jog-pad">
+                                <button class="jog-btn" onclick="jog('Y', 1)">▲<br>Y+</button>
+                                <div class="jog-row">
+                                    <button class="jog-btn" onclick="jog('X', -1)">◄<br>X-</button>
+                                    <button class="jog-btn home-btn" onclick="sendCommand('$H')">⌂</button>
+                                    <button class="jog-btn" onclick="jog('X', 1)">►<br>X+</button>
+                                </div>
+                                <button class="jog-btn" onclick="jog('Y', -1)">▼<br>Y-</button>
+                            </div>
+
+                            <!-- Z Jog -->
+                            <div class="jog-z">
+                                <button class="jog-btn jog-z-btn" onclick="jog('Z', 1)">▲<br>Z+</button>
+                                <button class="jog-btn jog-z-btn" onclick="jog('Z', -1)">▼<br>Z-</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Files Tab -->
+                <div id="files-tab" class="tab-content">
+                    <div class="card">
+                        <h3>File Browser</h3>
+                        <div class="file-browser">
+                            <div class="file-location-selector">
+                                <button class="btn" onclick="browseFiles('sd')">SD Card</button>
+                                <button class="btn" onclick="browseFiles('flash')">Flash</button>
+                            </div>
+                            <div id="file-list" class="file-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Macros Tab -->
+                <div id="macros-tab" class="tab-content">
+                    <div class="card">
+                        <h3>Macros</h3>
+                        <div id="macros-grid" class="macros-grid"></div>
+                        <button id="add-macro-btn" class="btn btn-primary">+ Add Macro</button>
+                    </div>
+                </div>
+
+                <!-- Probe Tab -->
+                <div id="probe-tab" class="tab-content">
+                    <div class="card">
+                        <h3>Touch Probe</h3>
+                        <div class="probe-controls">
+                            <div class="input-group">
+                                <label>Probe Distance (mm):</label>
+                                <input type="number" id="probe-distance" value="10" step="0.1">
+                            </div>
+                            <div class="input-group">
+                                <label>Probe Feed Rate:</label>
+                                <input type="number" id="probe-feed" value="100" step="10">
+                            </div>
+                            <div class="input-group">
+                                <label>Touch Plate Thickness (mm):</label>
+                                <input type="number" id="plate-thickness" value="1.5" step="0.01">
+                            </div>
+                            <div class="probe-buttons">
+                                <button class="btn btn-primary" onclick="probeZ()">Probe Z</button>
+                                <button class="btn" onclick="probeCorner()">Probe Corner</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Console Tab -->
+                <div id="console-tab" class="tab-content">
+                    <div class="card">
+                        <h3>Console</h3>
+                        <div id="console-output" class="console-output"></div>
+                        <div class="console-input">
+                            <input type="text" id="console-input" placeholder="Enter command...">
+                            <button class="btn btn-primary" onclick="sendConsoleCommand()">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Machine Configuration</h2>
+                <form id="machine-form">
+                    <div class="input-group">
+                        <label>Machine Name:</label>
+                        <input type="text" id="machine-name" required>
+                    </div>
+                    <div class="input-group">
+                        <label>FluidNC Host:</label>
+                        <input type="text" id="machine-host" placeholder="192.168.1.100 or fluidnc.local" required>
+                    </div>
+                    <div class="input-group">
+                        <label>WebSocket Port:</label>
+                        <input type="number" id="machine-port" value="81" min="1" max="65535" required>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
